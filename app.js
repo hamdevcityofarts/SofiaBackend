@@ -10,9 +10,6 @@ const path = require('path');
 require('dotenv').config();
 require('express-async-errors');
 
-// Import DB
-const connectDB = require('./src/config/database');
-
 // Import des routes (CORRIGÉ)
 const authRoutes = require('./src/routes/auth.routes');
 // const userRoutes = require('./src/routes/user.routes'); // COMMENTÉ - fichier n'existe pas
@@ -25,6 +22,9 @@ const ordersRoutes = require('./src/routes/orders.routes');
 // Import middleware d'erreur (CHEMINS CORRIGÉS)
 const errorHandler = require('./src/middleware/error.middleware');
 const logger = require('./src/utils/logger');
+
+// Import DB
+const connectDB = require('./src/config/database');
 
 // Initialisation de l'application
 const app = express();
@@ -229,61 +229,60 @@ app.all('*', (req, res) => {
 // Middleware de gestion d'erreurs
 //app.use(errorHandler);
 
-// ─── DÉMARRAGE DU SERVEUR (un seul app.listen) ──────────────────────────────
+// Démarrage du serveur
 const PORT = process.env.PORT || 5000;
 
-const startServer = async () => {
-  try {
-    logger.info('🔄 Connexion à MongoDB en cours...');
-    await connectDB();
-    logger.info('✅ MongoDB connecté avec succès');
+// Vérifier que le port est disponible
+const server = app.listen(PORT, () => {
+  logger.info(`🚀 Serveur démarré sur le port ${PORT} en mode ${process.env.NODE_ENV}`);
+  logger.info(`🌐 URL: http://localhost:${PORT}`);
+  
+  if (process.env.NODE_ENV === 'development') {
+    logger.info(`📚 Documentation: http://localhost:${PORT}/api-docs`);
+    logger.info(`🔧 Environnement: ${process.env.NODE_ENV}`);
+  }
 
-    const server = app.listen(PORT, () => {
-      logger.info(`🚀 Serveur démarré sur le port ${PORT} en mode ${process.env.NODE_ENV}`);
-      logger.info(`🌐 URL: http://localhost:${PORT}`);
-      logger.info(`🏥 Health check: http://localhost:${PORT}/api/health`);
-      
-      if (process.env.NODE_ENV === 'development') {
-        logger.info(`📚 Documentation: http://localhost:${PORT}/api-docs`);
-        logger.info(`🔧 Environnement: ${process.env.NODE_ENV}`);
-      }
+  // Connexion MongoDB APRÈS démarrage du serveur (non-bloquante)
+  logger.info('🔄 Connexion à MongoDB en cours...');
+  connectDB()
+    .then(() => {
+      logger.info('✅ MongoDB connecté avec succès');
+    })
+    .catch((err) => {
+      logger.error(`❌ MongoDB inaccessible: ${err.message}`);
+      logger.error(`🔍 MONGODB_URI: ${process.env.MONGODB_URI ? 'définie ✓' : 'MANQUANTE ✗'}`);
+      // On NE fait PAS process.exit() ici — le serveur reste up pour les logs
     });
+});
 
-    // Gestion des erreurs de démarrage
-    server.on('error', (error) => {
-      if (error.code === 'EADDRINUSE') {
-        logger.error(`❌ Le port ${PORT} est déjà utilisé.`);
-        logger.info(`💡 Essayez un autre port: PORT=5001 npm run dev`);
-        process.exit(1);
-      } else {
-        logger.error(`❌ Erreur de démarrage: ${error.message}`);
-        process.exit(1);
-      }
-    });
-
-    // Gestion propre des arrêts
-    process.on('SIGTERM', () => {
-      logger.info('SIGTERM reçu, arrêt propre du serveur');
-      server.close(() => {
-        logger.info('Serveur arrêté');
-        process.exit(0);
-      });
-    });
-
-    process.on('SIGINT', () => {
-      logger.info('SIGINT reçu, arrêt du serveur');
-      server.close(() => {
-        logger.info('Serveur arrêté');
-        process.exit(0);
-      });
-    });
-
-  } catch (error) {
-    logger.error(`❌ Impossible de démarrer — MongoDB inaccessible: ${error.message}`);
-    logger.error(`🔍 MONGODB_URI: ${process.env.MONGODB_URI ? 'définie ✓' : 'MANQUANTE ✗'}`);
+// Gestion des erreurs de démarrage
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    logger.error(`❌ Le port ${PORT} est déjà utilisé.`);
+    logger.info(`💡 Essayez un autre port: PORT=5001 npm run dev`);
+    process.exit(1);
+  } else {
+    logger.error(`❌ Erreur de démarrage: ${error.message}`);
     process.exit(1);
   }
-};
+});
+
+// Gestion propre des arrêts
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM reçu, arrêt propre du serveur');
+  server.close(() => {
+    logger.info('Serveur arrêté');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT reçu, arrêt du serveur');
+  server.close(() => {
+    logger.info('Serveur arrêté');
+    process.exit(0);
+  });
+});
 
 // Gestion des erreurs non catchées
 process.on('uncaughtException', (error) => {
@@ -295,7 +294,5 @@ process.on('unhandledRejection', (reason, promise) => {
   logger.error(`❌ Rejet non géré: ${reason}`);
   process.exit(1);
 });
-
-startServer();
 
 module.exports = app;
