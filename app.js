@@ -229,66 +229,6 @@ app.all('*', (req, res) => {
 // Démarrage du serveur
 const PORT = process.env.PORT || 5000;
 
-// CONNEXION DB AVANT de démarrer le serveur
-const startServer = async () => {
-  try {
-    logger.info('🔄 Connexion à MongoDB en cours...');
-    await connectDB();
-    logger.info('✅ MongoDB connecté avec succès');
-
-    const server = app.listen(PORT, () => {
-      logger.info(`🚀 Serveur démarré sur le port ${PORT} en mode ${process.env.NODE_ENV}`);
-      logger.info(`🌐 URL: http://localhost:${PORT}`);
-      logger.info(`🏥 Health check: http://localhost:${PORT}/api/health`);
-    });
-
-    server.on('error', (error) => {
-      if (error.code === 'EADDRINUSE') {
-        logger.error(`❌ Le port ${PORT} est déjà utilisé.`);
-        process.exit(1);
-      } else {
-        logger.error(`❌ Erreur de démarrage: ${error.message}`);
-        process.exit(1);
-      }
-    });
-
-    // Gestion propre des arrêts
-    process.on('SIGTERM', () => {
-      logger.info('SIGTERM reçu, arrêt propre du serveur');
-      server.close(() => {
-        logger.info('Serveur arrêté');
-        process.exit(0);
-      });
-    });
-
-    process.on('SIGINT', () => {
-      logger.info('SIGINT reçu, arrêt du serveur');
-      server.close(() => {
-        logger.info('Serveur arrêté');
-        process.exit(0);
-      });
-    });
-
-  } catch (error) {
-    logger.error(`❌ Impossible de démarrer: connexion MongoDB échouée: ${error.message}`);
-    logger.error(`🔍 URI utilisée: ${process.env.MONGODB_URI ? 'définie' : 'MANQUANTE'}`);
-    process.exit(1);
-  }
-};
-
-// Gestion des erreurs non catchées
-process.on('uncaughtException', (error) => {
-  logger.error(`❌ Erreur non catchée: ${error.message}`, { stack: error.stack });
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error(`❌ Rejet non géré: ${reason}`);
-  process.exit(1);
-});
-
-startServer();
-
 // Vérifier que le port est disponible
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Serveur démarré sur le port ${PORT} en mode ${process.env.NODE_ENV}`);
