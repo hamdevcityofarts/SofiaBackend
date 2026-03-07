@@ -25,6 +25,7 @@ const logger = require('./src/utils/logger');
 
 // Initialisation de l'application
 const app = express();
+app.set('trust proxy', 1);
 
 // Configuration CORS
 const corsOptions = {
