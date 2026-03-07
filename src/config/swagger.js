@@ -21,7 +21,7 @@ Documentation des services :
   },
   servers: [
     {
-      url: 'http://localhost:5000',
+      url: 'https://api.sofiasmartsolution.site',
       description: 'Serveur local',
     },
   ],
