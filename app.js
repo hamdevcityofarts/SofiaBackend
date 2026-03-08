@@ -10,10 +10,6 @@ const path = require('path');
 require('dotenv').config();
 require('express-async-errors');
 
-// Import DB + Seed
-const connectDB = require('./src/config/database');
-const seedDatabase = require('./scripts/seed');
-
 // Import des routes (CORRIGÉ)
 const authRoutes = require('./src/routes/auth.routes');
 // const userRoutes = require('./src/routes/user.routes'); // COMMENTÉ - fichier n'existe pas
@@ -26,6 +22,9 @@ const ordersRoutes = require('./src/routes/orders.routes');
 // Import middleware d'erreur (CHEMINS CORRIGÉS)
 const errorHandler = require('./src/middleware/error.middleware');
 const logger = require('./src/utils/logger');
+
+// Import DB
+const connectDB = require('./src/config/database');
 
 // Initialisation de l'application
 const app = express();
@@ -222,13 +221,14 @@ const server = app.listen(PORT, () => {
     .then(async () => {
       logger.info('✅ MongoDB connecté avec succès');
 
-      // ── AUTO-SEED : lance uniquement si aucun utilisateur en base ──
+      // ── AUTO-SEED : import dynamique pour éviter tout crash au démarrage ──
       try {
         const User = require('./src/models/User.model');
         const userCount = await User.countDocuments();
 
         if (userCount === 0) {
           logger.info('🌱 Base de données vide — lancement du seed initial...');
+          const seedDatabase = require('./scripts/seed'); // import dynamique ici
           await seedDatabase();
           logger.info('✅ Seed initial terminé avec succès');
         } else {
@@ -236,7 +236,7 @@ const server = app.listen(PORT, () => {
         }
       } catch (seedError) {
         logger.error(`❌ Erreur durant le seed: ${seedError.message}`);
-        // On ne plante pas le serveur si le seed échoue
+        // Le serveur continue même si le seed échoue
       }
     })
     .catch((err) => {
