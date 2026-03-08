@@ -37,11 +37,13 @@ const sampleUsers = [
   }
 ];
 
+// ✅ Champ "language" retiré — conflit avec l'index text MongoDB
+// MongoDB interprète "language" comme un language override et rejette "Français"
 const sampleBooks = [
   {
     title: "Transformation Digitale en Afrique",
-    author: "Sofia Éditions",
-    description: "Un ouvrage de référence sur les enjeux, opportunités et stratégies de la digitalisation en contexte africain.",
+    author: "Sofia Editions",
+    description: "Un ouvrage de reference sur les enjeux, opportunites et strategies de la digitalisation en contexte africain.",
     shortDescription: "Guide complet de la transformation digitale pour les entreprises africaines",
     price: 12000,
     currency: "XAF",
@@ -58,18 +60,17 @@ const sampleBooks = [
     isbn: "978-2-1234-5678-9",
     pages: 320,
     publishedDate: new Date('2023-01-15'),
-    publisher: "Éditions Sofia",
-    language: "Français",
+    publisher: "Editions Sofia",
     weight: 450,
     dimensions: { height: 23, width: 15, depth: 2 },
     tags: ["digital", "afrique", "transformation", "entreprise"],
     status: "active"
   },
   {
-    title: "Gestion Moderne de l'Hôtellerie",
+    title: "Gestion Moderne de l'Hotellerie",
     author: "Collectif Sofia",
-    description: "Guide pratique pour optimiser la gestion et la rentabilité des établissements hôteliers en Afrique.",
-    shortDescription: "Manuel de gestion hôtelière adapté au contexte africain",
+    description: "Guide pratique pour optimiser la gestion et la rentabilite des etablissements hoteliers en Afrique.",
+    shortDescription: "Manuel de gestion hoteliere adapte au contexte africain",
     price: 15000,
     currency: "XAF",
     stock: 12,
@@ -82,8 +83,7 @@ const sampleBooks = [
     isbn: "978-2-1234-5679-6",
     pages: 280,
     publishedDate: new Date('2023-03-20'),
-    publisher: "Éditions Sofia",
-    language: "Français",
+    publisher: "Editions Sofia",
     weight: 400,
     dimensions: { height: 21, width: 14, depth: 2 },
     tags: ["hotellerie", "management", "afrique"],
@@ -92,8 +92,8 @@ const sampleBooks = [
   {
     title: "Marketing Digital pour PME",
     author: "Marie Koffi",
-    description: "Stratégies digitales accessibles et efficaces pour les petites et moyennes entreprises africaines.",
-    shortDescription: "Stratégies digitales pour PME africaines",
+    description: "Strategies digitales accessibles et efficaces pour les petites et moyennes entreprises africaines.",
+    shortDescription: "Strategies digitales pour PME africaines",
     price: 9500,
     currency: "XAF",
     stock: 18,
@@ -106,8 +106,7 @@ const sampleBooks = [
     isbn: "978-2-1234-5680-2",
     pages: 240,
     publishedDate: new Date('2023-06-10'),
-    publisher: "Éditions Sofia",
-    language: "Français",
+    publisher: "Editions Sofia",
     weight: 350,
     dimensions: { height: 20, width: 13, depth: 1.5 },
     tags: ["marketing", "pme", "digital", "afrique"],
@@ -121,34 +120,34 @@ const sampleServices = [
     title: "Librairie Digitale",
     slug: "librairie-digitale",
     tagline: "Librairie en ligne officielle de Sofia",
-    description: "Plateforme e-commerce dédiée à la vente en ligne des ouvrages Sofia et autres livres spécialisés.",
-    heroText: "Découvrez et commandez en ligne les ouvrages Sofia.",
+    description: "Plateforme e-commerce dediee a la vente en ligne des ouvrages Sofia et autres livres specialises.",
+    heroText: "Decouvrez et commandez en ligne les ouvrages Sofia.",
     icon: "BookOpen",
     coverImage: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=400&fit=crop",
     features: [
-      { title: "Vente en ligne", description: "Achat sécurisé de livres spécialisés", icon: "ShoppingCart" },
-      { title: "Compte client", description: "Historique d'achats et préférences", icon: "Users" },
-      { title: "Catalogue riche", description: "Livres structurés par catégories", icon: "BarChart3" },
-      { title: "Paiement sécurisé", description: "Transactions 100% sécurisées", icon: "ShieldCheck" }
+      { title: "Vente en ligne", description: "Achat securise de livres specialises", icon: "ShoppingCart" },
+      { title: "Compte client", description: "Historique d'achats et preferences", icon: "Users" },
+      { title: "Catalogue riche", description: "Livres structures par categories", icon: "BarChart3" },
+      { title: "Paiement securise", description: "Transactions 100% securisees", icon: "ShieldCheck" }
     ],
     testimonials: [
-      { name: "Responsable Librairie", role: "Direction", quote: "La librairie en ligne a permis d'élargir notre audience", rating: 5 }
+      { name: "Responsable Librairie", role: "Direction", quote: "La librairie en ligne a permis d'elargir notre audience", rating: 5 }
     ],
     category: "digital",
     order: 1,
     isActive: true
   },
   {
-    title: "Digitalisation Hôtelière",
+    title: "Digitalisation Hoteliere",
     slug: "digitalisation-hoteliere",
-    tagline: "Optimisez la gestion de vos établissements",
-    description: "Solution complète pour la gestion hôtelière et les demandes de réservation en ligne.",
-    heroText: "Centralisez vos opérations hôtelières et améliorez l'expérience client.",
+    tagline: "Optimisez la gestion de vos etablissements",
+    description: "Solution complete pour la gestion hoteliere et les demandes de reservation en ligne.",
+    heroText: "Centralisez vos operations hotelieres et ameliorez l'experience client.",
     icon: "Hotel",
     coverImage: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=400&fit=crop",
     features: [
-      { title: "Gestion des chambres", description: "Suivi en temps réel", icon: "Hotel" },
-      { title: "Réservations en ligne", description: "Système de booking intégré", icon: "CalendarCheck" },
+      { title: "Gestion des chambres", description: "Suivi en temps reel", icon: "Hotel" },
+      { title: "Reservations en ligne", description: "Systeme de booking integre", icon: "CalendarCheck" },
       { title: "Tableau de bord", description: "Analytics et reporting", icon: "TrendingUp" },
       { title: "Support 24/7", description: "Assistance technique permanente", icon: "Headphones" }
     ],
@@ -161,10 +160,10 @@ const sampleServices = [
 // ✅ Slug explicite — insertMany ne déclenche pas pre('save')
 const sampleHotels = [
   {
-    name: "Hôtel Sofia Palace",
+    name: "Hotel Sofia Palace",
     slug: "hotel-sofia-palace",
-    description: "Hôtel 4 étoiles au cœur de Douala, offrant un mélange parfait de luxe et de technologie.",
-    shortDescription: "Hôtel 4* high-tech à Douala",
+    description: "Hotel 4 etoiles au coeur de Douala, offrant un melange parfait de luxe et de technologie.",
+    shortDescription: "Hotel 4* high-tech a Douala",
     address: {
       street: "Rue des Banques, Akwa",
       city: "Douala",
@@ -188,7 +187,7 @@ const sampleHotels = [
       {
         type: "standard",
         name: "Chambre Standard",
-        description: "Chambre confortable avec lit double, salle de bain privée et wifi gratuit.",
+        description: "Chambre confortable avec lit double, salle de bain privee et wifi gratuit.",
         pricePerNight: 35000,
         currency: "XAF",
         capacity: { adults: 2, children: 1 },
@@ -200,8 +199,8 @@ const sampleHotels = [
       },
       {
         type: "suite",
-        name: "Suite Exécutive",
-        description: "Suite spacieuse avec salon séparé, vue sur la ville et services premium.",
+        name: "Suite Executive",
+        description: "Suite spacieuse avec salon separe, vue sur la ville et services premium.",
         pricePerNight: 75000,
         currency: "XAF",
         capacity: { adults: 2, children: 2 },
@@ -215,9 +214,9 @@ const sampleHotels = [
     policies: {
       checkIn: "14:00",
       checkOut: "12:00",
-      cancellation: "Annulation gratuite jusqu'à 48h avant l'arrivée",
+      cancellation: "Annulation gratuite jusqu'a 48h avant l'arrivee",
       children: "Enfants de moins de 12 ans gratuits",
-      pets: "Animaux non acceptés"
+      pets: "Animaux non acceptes"
     },
     isActive: true,
     status: "active"
@@ -230,7 +229,7 @@ async function seedDatabase() {
     // Si appelé directement via CLI, on connecte
     if (mongoose.connection.readyState === 0) {
       await connectDB();
-      logger.info('📊 Connexion à la base de données établie');
+      logger.info('📊 Connexion a la base de donnees etablie');
     }
 
     // Supprime les données existantes
@@ -240,7 +239,7 @@ async function seedDatabase() {
       Service.deleteMany({}),
       Hotel.deleteMany({})
     ]);
-    logger.info('🗑️  Anciennes données supprimées');
+    logger.info('🗑️  Anciennes donnees supprimees');
 
     // ✅ User.create() déclenche pre('save') → hash automatique du password
     const createdUsers = [];
@@ -248,27 +247,27 @@ async function seedDatabase() {
       const user = await User.create(userData);
       createdUsers.push(user);
     }
-    logger.info(`👥 ${createdUsers.length} utilisateurs créés`);
+    logger.info(`👥 ${createdUsers.length} utilisateurs crees`);
 
     // ✅ Books — insertMany OK (pas de slug unique requis)
     const adminUser = createdUsers.find(u => u.role === 'admin');
     const booksWithCreator = sampleBooks.map(book => ({ ...book, createdBy: adminUser._id }));
     const createdBooks = await Book.insertMany(booksWithCreator);
-    logger.info(`📚 ${createdBooks.length} livres créés`);
+    logger.info(`📚 ${createdBooks.length} livres crees`);
 
-    // ✅ Services — slugs explicites dans les données → insertMany OK
+    // ✅ Services — slugs explicites dans les données
     const createdServices = await Service.insertMany(sampleServices);
-    logger.info(`🛠️  ${createdServices.length} services créés`);
+    logger.info(`🛠️  ${createdServices.length} services crees`);
 
-    // ✅ Hotels — slug explicite dans les données → insertMany OK
+    // ✅ Hotels — slug explicite dans les données
     const managerUser = createdUsers.find(u => u.role === 'hotel_manager');
     const hotelsWithManager = sampleHotels.map(hotel => ({ ...hotel, manager: managerUser._id }));
     const createdHotels = await Hotel.insertMany(hotelsWithManager);
-    logger.info(`🏨 ${createdHotels.length} hôtels créés`);
+    logger.info(`🏨 ${createdHotels.length} hotels crees`);
 
-    logger.info('✅ Base de données peuplée avec succès');
+    logger.info('✅ Base de donnees peuplee avec succes');
 
-    console.log('\n📋 CRÉDENTIALS DE TEST:');
+    console.log('\n📋 CREDENTIALS DE TEST:');
     console.log('=====================');
     sampleUsers.forEach(user => {
       console.log(`\nEmail: ${user.email}`);
@@ -276,7 +275,6 @@ async function seedDatabase() {
       console.log(`Role: ${user.role}`);
     });
 
-    // Exit seulement si lancé directement via CLI
     if (require.main === module) {
       process.exit(0);
     }
