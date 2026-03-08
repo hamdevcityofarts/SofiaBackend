@@ -10,6 +10,10 @@ const path = require('path');
 require('dotenv').config();
 require('express-async-errors');
 
+// Import DB + Seed
+const connectDB = require('./src/config/database');
+const seedDatabase = require('./scripts/seed');
+
 // Import des routes (CORRIGÉ)
 const authRoutes = require('./src/routes/auth.routes');
 // const userRoutes = require('./src/routes/user.routes'); // COMMENTÉ - fichier n'existe pas
@@ -22,9 +26,6 @@ const ordersRoutes = require('./src/routes/orders.routes');
 // Import middleware d'erreur (CHEMINS CORRIGÉS)
 const errorHandler = require('./src/middleware/error.middleware');
 const logger = require('./src/utils/logger');
-
-// Import DB
-const connectDB = require('./src/config/database');
 
 // Initialisation de l'application
 const app = express();
@@ -52,8 +53,8 @@ const helmetConfig = {
       frameSrc: ["'none'"]
     }
   },
-  crossOriginEmbedderPolicy: false, // Désactivé pour Swagger UI
-  crossOriginResourcePolicy: { policy: "cross-origin" } // Pour permettre les images
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 };
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -66,9 +67,7 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Sécurité
-app.use(mongoSanitize({
-  replaceWith: '_'
-}));
+app.use(mongoSanitize({ replaceWith: '_' }));
 
 // Protection contre les attaques XSS — champs sensibles exclus de l'encodage
 app.use((req, res, next) => {
@@ -76,11 +75,9 @@ app.use((req, res, next) => {
 
   const cleanObject = (obj) => {
     if (!obj) return obj;
-    
     for (let key in obj) {
-      if (sensitiveFields.includes(key)) continue; // Ne pas encoder les mots de passe
+      if (sensitiveFields.includes(key)) continue;
       if (typeof obj[key] === 'string') {
-        // Échapper les caractères HTML dangereux
         obj[key] = obj[key]
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
@@ -94,48 +91,36 @@ app.use((req, res, next) => {
     }
   };
 
-  // Nettoyer les body, query et params
   if (req.body) cleanObject(req.body);
   if (req.query) cleanObject(req.query);
   if (req.params) cleanObject(req.params);
-  
   next();
 });
 
-// Rate limiting
+// Rate limiting global
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limite chaque IP à 100 requêtes par windowMs
-  message: {
-    status: 'error',
-    message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
-  },
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { status: 'error', message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.' },
   standardHeaders: true,
   legacyHeaders: false
 });
-
-// Appliquer le rate limiting à toutes les routes API
 app.use('/api', limiter);
 
-// Rate limiting spécifique pour l'authentification
+// Rate limiting auth
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 tentatives max pour l'authentification
-  message: {
-    status: 'error',
-    message: 'Trop de tentatives. Veuillez réessayer dans 15 minutes.'
-  },
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { status: 'error', message: 'Trop de tentatives. Veuillez réessayer dans 15 minutes.' },
   skipSuccessfulRequests: true
 });
-
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 
-//Logging des requêtes
+// Logging des requêtes
 app.use((req, res, next) => {
   const start = Date.now();
-  
   res.on('finish', () => {
     const duration = Date.now() - start;
     logger.info(`${req.method} ${req.originalUrl}`, {
@@ -146,7 +131,6 @@ app.use((req, res, next) => {
       userId: req.user ? req.user.id : 'anonymous'
     });
   });
-  
   next();
 });
 
@@ -159,10 +143,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes publiques
+// Health check
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
+  res.status(200).json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'Sofia Smart Solutions API',
     version: process.env.npm_package_version || '1.0.0',
@@ -170,42 +154,33 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Routes API (NOMS CORRIGÉS)
+// Routes API
 app.use('/api/auth', authRoutes);
-app.use('/api/books', booksRoutes); // CORRIGÉ: booksRoutes (pas bookRoutes)
-app.use('/api/orders', ordersRoutes); // CORRIGÉ: ordersRoutes (pas orderRoutes)
-app.use('/api/hotels', hotelsRoutes); // CORRIGÉ: hotelsRoutes (pas hotelRoutes)
-app.use('/api/services', servicesRoutes); // CORRIGÉ: servicesRoutes (pas serviceRoutes)
+app.use('/api/books', booksRoutes);
+app.use('/api/orders', ordersRoutes);
+app.use('/api/hotels', hotelsRoutes);
+app.use('/api/services', servicesRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Documentation Swagger (dev seulement)
 if (process.env.NODE_ENV === 'development') {
   const swaggerUi = require('swagger-ui-express');
-  const swaggerDocument = require('./swagger.json'); // CHEMIN CORRIGÉ
-  
-  // Configuration Swagger UI
+  const swaggerDocument = require('./swagger.json');
   const swaggerOptions = {
     explorer: true,
     customCss: '.swagger-ui .topbar { display: none }',
     customSiteTitle: "Sofia Smart Solutions API"
   };
-  
-  app.use('/api-docs', 
-    swaggerUi.serve, 
-    swaggerUi.setup(swaggerDocument, swaggerOptions)
-  );
-  
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
   logger.info(`📚 Documentation API disponible sur: http://localhost:${process.env.PORT || 5000}/api-docs`);
 }
 
 // Route de bienvenue
 app.get('/', (req, res) => {
   res.status(200).json({
-    message: 'Bienvenue sur l\'API Sofia Smart Solutions',
+    message: "Bienvenue sur l'API Sofia Smart Solutions",
     version: process.env.npm_package_version || '1.0.0',
-    documentation: process.env.NODE_ENV === 'development' 
-      ? `/api-docs` 
-      : 'Consultez la documentation technique',
+    documentation: process.env.NODE_ENV === 'development' ? `/api-docs` : 'Consultez la documentation technique',
     endpoints: {
       auth: '/api/auth',
       books: '/api/books',
@@ -217,7 +192,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Gestion des routes non trouvées
+// 404
 app.all('*', (req, res) => {
   res.status(404).json({
     status: 'error',
@@ -227,31 +202,46 @@ app.all('*', (req, res) => {
 });
 
 // Middleware de gestion d'erreurs
-//app.use(errorHandler);
+// app.use(errorHandler);
 
-// Démarrage du serveur
+// ─── DÉMARRAGE DU SERVEUR ────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
-// Vérifier que le port est disponible
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Serveur démarré sur le port ${PORT} en mode ${process.env.NODE_ENV}`);
   logger.info(`🌐 URL: http://localhost:${PORT}`);
-  
+
   if (process.env.NODE_ENV === 'development') {
     logger.info(`📚 Documentation: http://localhost:${PORT}/api-docs`);
     logger.info(`🔧 Environnement: ${process.env.NODE_ENV}`);
   }
 
-  // Connexion MongoDB APRÈS démarrage du serveur (non-bloquante)
+  // Connexion MongoDB puis auto-seed si DB vide
   logger.info('🔄 Connexion à MongoDB en cours...');
   connectDB()
-    .then(() => {
+    .then(async () => {
       logger.info('✅ MongoDB connecté avec succès');
+
+      // ── AUTO-SEED : lance uniquement si aucun utilisateur en base ──
+      try {
+        const User = require('./src/models/User.model');
+        const userCount = await User.countDocuments();
+
+        if (userCount === 0) {
+          logger.info('🌱 Base de données vide — lancement du seed initial...');
+          await seedDatabase();
+          logger.info('✅ Seed initial terminé avec succès');
+        } else {
+          logger.info(`👥 Base de données déjà peuplée (${userCount} utilisateurs) — seed ignoré`);
+        }
+      } catch (seedError) {
+        logger.error(`❌ Erreur durant le seed: ${seedError.message}`);
+        // On ne plante pas le serveur si le seed échoue
+      }
     })
     .catch((err) => {
       logger.error(`❌ MongoDB inaccessible: ${err.message}`);
       logger.error(`🔍 MONGODB_URI: ${process.env.MONGODB_URI ? 'définie ✓' : 'MANQUANTE ✗'}`);
-      // On NE fait PAS process.exit() ici — le serveur reste up pour les logs
     });
 });
 
@@ -270,18 +260,12 @@ server.on('error', (error) => {
 // Gestion propre des arrêts
 process.on('SIGTERM', () => {
   logger.info('SIGTERM reçu, arrêt propre du serveur');
-  server.close(() => {
-    logger.info('Serveur arrêté');
-    process.exit(0);
-  });
+  server.close(() => { logger.info('Serveur arrêté'); process.exit(0); });
 });
 
 process.on('SIGINT', () => {
   logger.info('SIGINT reçu, arrêt du serveur');
-  server.close(() => {
-    logger.info('Serveur arrêté');
-    process.exit(0);
-  });
+  server.close(() => { logger.info('Serveur arrêté'); process.exit(0); });
 });
 
 // Gestion des erreurs non catchées

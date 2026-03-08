@@ -1,6 +1,5 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 const connectDB = require('../config/database');
 const User = require('../models/User.model');
 const Book = require('../models/Book.model');
@@ -8,7 +7,6 @@ const Service = require('../models/Service.model');
 const Hotel = require('../models/Hotel.model');
 const logger = require('../utils/logger');
 
-// Sample data
 const sampleUsers = [
   {
     email: 'admin@sofiass.com',
@@ -51,7 +49,7 @@ const sampleBooks = [
     category: "digital",
     coverImage: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=600&fit=crop",
     images: [
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w-800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop",
       "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=600&fit=crop"
     ],
     formats: ["Papier", "PDF"],
@@ -228,62 +226,45 @@ const sampleHotels = [
 
 async function seedDatabase() {
   try {
-    // Connect to database
-    await connectDB();
-    logger.info('📊 Connexion à la base de données établie');
-
-    // Clear existing data (optional - comment out in production)
-    if (process.env.NODE_ENV === 'development') {
-      await Promise.all([
-        User.deleteMany({}),
-        Book.deleteMany({}),
-        Service.deleteMany({}),
-        Hotel.deleteMany({})
-      ]);
-      logger.info('🗑️  Anciennes données supprimées');
+    // Si appelé depuis app.js, la DB est déjà connectée
+    // Si appelé directement via CLI, on connecte
+    if (mongoose.connection.readyState === 0) {
+      await connectDB();
+      logger.info('📊 Connexion à la base de données établie');
     }
 
-    // Hash passwords and create users
+    // Supprime les données existantes
+    await Promise.all([
+      User.deleteMany({}),
+      Book.deleteMany({}),
+      Service.deleteMany({}),
+      Hotel.deleteMany({})
+    ]);
+    logger.info('🗑️  Anciennes données supprimées');
+
+    // ✅ PAS de bcrypt manuel — le modèle User hash automatiquement via pre('save')
     const createdUsers = [];
     for (const userData of sampleUsers) {
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(userData.password, salt);
-      
-      const user = await User.create({
-        ...userData,
-        password: hashedPassword
-      });
+      const user = await User.create(userData);
       createdUsers.push(user);
     }
     logger.info(`👥 ${createdUsers.length} utilisateurs créés`);
 
-    // Create books with admin as creator
     const adminUser = createdUsers.find(u => u.role === 'admin');
-    const booksWithCreator = sampleBooks.map(book => ({
-      ...book,
-      createdBy: adminUser._id
-    }));
-
+    const booksWithCreator = sampleBooks.map(book => ({ ...book, createdBy: adminUser._id }));
     const createdBooks = await Book.insertMany(booksWithCreator);
     logger.info(`📚 ${createdBooks.length} livres créés`);
 
-    // Create services
     const createdServices = await Service.insertMany(sampleServices);
     logger.info(`🛠️  ${createdServices.length} services créés`);
 
-    // Create hotels with manager
     const managerUser = createdUsers.find(u => u.role === 'hotel_manager');
-    const hotelsWithManager = sampleHotels.map(hotel => ({
-      ...hotel,
-      manager: managerUser._id
-    }));
-
+    const hotelsWithManager = sampleHotels.map(hotel => ({ ...hotel, manager: managerUser._id }));
     const createdHotels = await Hotel.insertMany(hotelsWithManager);
     logger.info(`🏨 ${createdHotels.length} hôtels créés`);
 
     logger.info('✅ Base de données peuplée avec succès');
-    
-    // Display credentials
+
     console.log('\n📋 CRÉDENTIALS DE TEST:');
     console.log('=====================');
     sampleUsers.forEach(user => {
@@ -292,16 +273,21 @@ async function seedDatabase() {
       console.log(`Role: ${user.role}`);
     });
 
-    process.exit(0);
+    // Exit seulement si lancé directement via CLI
+    if (require.main === module) {
+      process.exit(0);
+    }
 
   } catch (error) {
     logger.error(`❌ Erreur lors du peuplement: ${error.message}`);
     console.error(error);
-    process.exit(1);
+    if (require.main === module) {
+      process.exit(1);
+    }
+    throw error; // Re-throw pour que app.js puisse catcher
   }
 }
 
-// Run seed
 if (require.main === module) {
   seedDatabase();
 }
