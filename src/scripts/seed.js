@@ -62,7 +62,8 @@ const sampleBooks = [
     language: "Français",
     weight: 450,
     dimensions: { height: 23, width: 15, depth: 2 },
-    tags: ["digital", "afrique", "transformation", "entreprise"]
+    tags: ["digital", "afrique", "transformation", "entreprise"],
+    status: "active"
   },
   {
     title: "Gestion Moderne de l'Hôtellerie",
@@ -85,7 +86,8 @@ const sampleBooks = [
     language: "Français",
     weight: 400,
     dimensions: { height: 21, width: 14, depth: 2 },
-    tags: ["hotellerie", "management", "afrique"]
+    tags: ["hotellerie", "management", "afrique"],
+    status: "active"
   },
   {
     title: "Marketing Digital pour PME",
@@ -108,17 +110,19 @@ const sampleBooks = [
     language: "Français",
     weight: 350,
     dimensions: { height: 20, width: 13, depth: 1.5 },
-    tags: ["marketing", "pme", "digital", "afrique"]
+    tags: ["marketing", "pme", "digital", "afrique"],
+    status: "active"
   }
 ];
 
+// ✅ Slugs explicites — insertMany ne déclenche pas pre('save')
 const sampleServices = [
   {
     title: "Librairie Digitale",
     slug: "librairie-digitale",
     tagline: "Librairie en ligne officielle de Sofia",
     description: "Plateforme e-commerce dédiée à la vente en ligne des ouvrages Sofia et autres livres spécialisés.",
-    heroText: "Découvrez et commandez en ligne les ouvrages Sofia, conçus pour accompagner la transformation digitale et la montée en compétences.",
+    heroText: "Découvrez et commandez en ligne les ouvrages Sofia.",
     icon: "BookOpen",
     coverImage: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=400&fit=crop",
     features: [
@@ -128,12 +132,7 @@ const sampleServices = [
       { title: "Paiement sécurisé", description: "Transactions 100% sécurisées", icon: "ShieldCheck" }
     ],
     testimonials: [
-      {
-        name: "Responsable Librairie",
-        role: "Direction",
-        quote: "La librairie en ligne a permis d'élargir notre audience",
-        rating: 5
-      }
+      { name: "Responsable Librairie", role: "Direction", quote: "La librairie en ligne a permis d'élargir notre audience", rating: 5 }
     ],
     category: "digital",
     order: 1,
@@ -144,7 +143,7 @@ const sampleServices = [
     slug: "digitalisation-hoteliere",
     tagline: "Optimisez la gestion de vos établissements",
     description: "Solution complète pour la gestion hôtelière et les demandes de réservation en ligne.",
-    heroText: "Centralisez vos opérations hôtelières et améliorez l'expérience client avec nos solutions digitales.",
+    heroText: "Centralisez vos opérations hôtelières et améliorez l'expérience client.",
     icon: "Hotel",
     coverImage: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=400&fit=crop",
     features: [
@@ -159,6 +158,7 @@ const sampleServices = [
   }
 ];
 
+// ✅ Slug explicite — insertMany ne déclenche pas pre('save')
 const sampleHotels = [
   {
     name: "Hôtel Sofia Palace",
@@ -242,7 +242,7 @@ async function seedDatabase() {
     ]);
     logger.info('🗑️  Anciennes données supprimées');
 
-    // ✅ PAS de bcrypt manuel — le modèle User hash automatiquement via pre('save')
+    // ✅ User.create() déclenche pre('save') → hash automatique du password
     const createdUsers = [];
     for (const userData of sampleUsers) {
       const user = await User.create(userData);
@@ -250,14 +250,17 @@ async function seedDatabase() {
     }
     logger.info(`👥 ${createdUsers.length} utilisateurs créés`);
 
+    // ✅ Books — insertMany OK (pas de slug unique requis)
     const adminUser = createdUsers.find(u => u.role === 'admin');
     const booksWithCreator = sampleBooks.map(book => ({ ...book, createdBy: adminUser._id }));
     const createdBooks = await Book.insertMany(booksWithCreator);
     logger.info(`📚 ${createdBooks.length} livres créés`);
 
+    // ✅ Services — slugs explicites dans les données → insertMany OK
     const createdServices = await Service.insertMany(sampleServices);
     logger.info(`🛠️  ${createdServices.length} services créés`);
 
+    // ✅ Hotels — slug explicite dans les données → insertMany OK
     const managerUser = createdUsers.find(u => u.role === 'hotel_manager');
     const hotelsWithManager = sampleHotels.map(hotel => ({ ...hotel, manager: managerUser._id }));
     const createdHotels = await Hotel.insertMany(hotelsWithManager);
@@ -284,7 +287,7 @@ async function seedDatabase() {
     if (require.main === module) {
       process.exit(1);
     }
-    throw error; // Re-throw pour que app.js puisse catcher
+    throw error;
   }
 }
 
