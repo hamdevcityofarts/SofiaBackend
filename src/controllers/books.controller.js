@@ -18,58 +18,37 @@ exports.getAllBooks = async (req, res) => {
       status = 'active'
     } = req.query;
 
-    // Build query
-    const query = { status };
-
-    // Category filter
-    if (category && category !== 'all') {
-      query.category = category;
-    }
-
-    // Featured filter
-    if (featured === 'true') {
-      query.featured = true;
-    }
-
-    // Price range filter
+    const query = {};
+    if (status && status !== 'all') query.status = status;
+    if (category && category !== 'all') query.category = category;
+    if (featured === 'true') query.featured = true;
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = parseFloat(minPrice);
       if (maxPrice) query.price.$lte = parseFloat(maxPrice);
     }
+    if (search) query.$text = { $search: search };
 
-    // Search filter
-    if (search) {
-      query.$text = { $search: search };
-    }
-
-    // Execute query
-    const booksQuery = Book.find(query);
-
-    // Sorting
-    const sortOptions = sort.split(',').join(' ');
-    booksQuery.sort(sortOptions);
-
-    // Pagination
-    const pageNum = parseInt(page);
+    const pageNum  = parseInt(page);
     const limitNum = parseInt(limit);
-    const skip = (pageNum - 1) * limitNum;
+    const skip     = (pageNum - 1) * limitNum;
 
-    booksQuery.skip(skip).limit(limitNum);
+    const sortOptions = sort.split(',').join(' ');
 
-    // Get books and count
     const [books, total] = await Promise.all([
-      booksQuery,
+      Book.find(query).sort(sortOptions).skip(skip).limit(limitNum),
       Book.countDocuments(query)
     ]);
 
-    // Calculate pagination info
     const totalPages = Math.ceil(total / limitNum);
 
     res.status(200).json({
       status: 'success',
       data: {
         books,
+        total,
+        page: pageNum,
+        totalPages,
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -80,13 +59,9 @@ exports.getAllBooks = async (req, res) => {
         }
       }
     });
-
   } catch (error) {
     logger.error(`Erreur récupération livres: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Erreur lors de la récupération des livres'
-    });
+    res.status(500).json({ status: 'error', message: 'Erreur lors de la récupération des livres' });
   }
 };
 
@@ -96,31 +71,15 @@ exports.getAllBooks = async (req, res) => {
 exports.getBook = async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
-
     if (!book) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Livre non trouvé'
-      });
+      return res.status(404).json({ status: 'error', message: 'Livre non trouvé' });
     }
-
-    // Increment views
     book.metadata.views += 1;
     await book.save();
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        book
-      }
-    });
-
+    res.status(200).json({ status: 'success', data: { book } });
   } catch (error) {
     logger.error(`Erreur récupération livre: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Erreur lors de la récupération du livre'
-    });
+    res.status(500).json({ status: 'error', message: 'Erreur lors de la récupération du livre' });
   }
 };
 
@@ -129,32 +88,19 @@ exports.getBook = async (req, res) => {
 // @access  Private/Admin
 exports.createBook = async (req, res) => {
   try {
-    // Add createdBy field
     req.body.createdBy = req.user.id;
-
     const book = await Book.create(req.body);
-
-    res.status(201).json({
-      status: 'success',
-      data: {
-        book
-      }
-    });
-
+    res.status(201).json({ status: 'success', data: { book } });
   } catch (error) {
     logger.error(`Erreur création livre: ${error.message}`);
-    
     if (error.code === 11000) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Un livre avec cet ISBN existe déjà'
-      });
+      return res.status(400).json({ status: 'error', message: 'Un livre avec cet ISBN existe déjà' });
     }
-
-    res.status(500).json({
-      status: 'error',
-      message: 'Erreur lors de la création du livre'
-    });
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({ status: 'error', message: messages.join(', ') });
+    }
+    res.status(500).json({ status: 'error', message: 'Erreur lors de la création du livre' });
   }
 };
 
@@ -166,64 +112,37 @@ exports.updateBook = async (req, res) => {
     const book = await Book.findByIdAndUpdate(
       req.params.id,
       req.body,
-      {
-        new: true,
-        runValidators: true
-      }
+      { new: true, runValidators: true }
     );
-
     if (!book) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Livre non trouvé'
-      });
+      return res.status(404).json({ status: 'error', message: 'Livre non trouvé' });
     }
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        book
-      }
-    });
-
+    res.status(200).json({ status: 'success', data: { book } });
   } catch (error) {
     logger.error(`Erreur mise à jour livre: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Erreur lors de la mise à jour du livre'
-    });
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({ status: 'error', message: messages.join(', ') });
+    }
+    res.status(500).json({ status: 'error', message: 'Erreur lors de la mise à jour du livre' });
   }
 };
 
-// @desc    Delete book
+// @desc    Delete book (soft delete)
 // @route   DELETE /api/books/:id
 // @access  Private/Admin
 exports.deleteBook = async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
-
     if (!book) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Livre non trouvé'
-      });
+      return res.status(404).json({ status: 'error', message: 'Livre non trouvé' });
     }
-
-    // Soft delete - change status to discontinued
     book.status = 'discontinued';
     await book.save();
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Livre désactivé avec succès'
-    });
-
+    res.status(200).json({ status: 'success', message: 'Livre désactivé avec succès' });
   } catch (error) {
     logger.error(`Erreur suppression livre: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Erreur lors de la suppression du livre'
-    });
+    res.status(500).json({ status: 'error', message: 'Erreur lors de la suppression du livre' });
   }
 };
 
@@ -237,20 +156,10 @@ exports.getCategories = async (req, res) => {
       { $group: { _id: '$category', count: { $sum: 1 } } },
       { $sort: { _id: 1 } }
     ]);
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        categories
-      }
-    });
-
+    res.status(200).json({ status: 'success', data: { categories } });
   } catch (error) {
     logger.error(`Erreur récupération catégories: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Erreur lors de la récupération des catégories'
-    });
+    res.status(500).json({ status: 'error', message: 'Erreur lors de la récupération des catégories' });
   }
 };
 
@@ -259,24 +168,13 @@ exports.getCategories = async (req, res) => {
 // @access  Public
 exports.getFeaturedBooks = async (req, res) => {
   try {
-    const books = await Book.find({
-      featured: true,
-      status: 'active'
-    }).limit(8).sort('-createdAt');
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        books
-      }
-    });
-
+    const books = await Book.find({ featured: true, status: 'active' })
+      .limit(8)
+      .sort('-createdAt');
+    res.status(200).json({ status: 'success', data: { books } });
   } catch (error) {
     logger.error(`Erreur récupération livres en vedette: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Erreur lors de la récupération des livres en vedette'
-    });
+    res.status(500).json({ status: 'error', message: 'Erreur lors de la récupération des livres en vedette' });
   }
 };
 
@@ -287,28 +185,13 @@ exports.updateStock = async (req, res) => {
   try {
     const { quantity } = req.body;
     const book = await Book.findById(req.params.id);
-
     if (!book) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Livre non trouvé'
-      });
+      return res.status(404).json({ status: 'error', message: 'Livre non trouvé' });
     }
-
     await book.updateStock(quantity);
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        book
-      }
-    });
-
+    res.status(200).json({ status: 'success', data: { book } });
   } catch (error) {
     logger.error(`Erreur mise à jour stock: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Erreur lors de la mise à jour du stock'
-    });
+    res.status(500).json({ status: 'error', message: 'Erreur lors de la mise à jour du stock' });
   }
 };
