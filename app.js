@@ -36,7 +36,6 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200
 };
-
 // Configuration Helmet avec protection XSS intégrée
 const helmetConfig = {
   contentSecurityPolicy: {
