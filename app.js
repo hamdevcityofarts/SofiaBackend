@@ -32,7 +32,7 @@ app.set('trust proxy', 1);
 
 // Configuration CORS
 const corsOptions = {
-  origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:5173', 'http://localhost:3001'],
+  origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:5173', 'http://localhost:3001','http://localhost:3000'],
   credentials: true,
   optionsSuccessStatus: 200
 };
